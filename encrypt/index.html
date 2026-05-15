@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CipherDeck — Caesar + Vigenere Cipher Tool</title>
+  <style>
+    :root {
+      --bg-1: #f6f1e5;
+      --bg-2: #e7dfc8;
+      --ink: #1d1b18;
+      --panel: rgba(255, 255, 255, 0.78);
+      --line: #c9bfa8;
+      --accent: #bf4a2b;
+      --accent-2: #25695b;
+      --muted: #4f4a42;
+      --chip-bg: #f4ece0;
+      --chip-line: #d8ccb5;
+      --shadow: 0 12px 30px rgba(20, 18, 14, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Avenir Next", "Segoe UI", "Trebuchet MS", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 700px at 0% -20%, rgba(37, 105, 91, 0.18), transparent 70%),
+        radial-gradient(900px 500px at 110% 20%, rgba(191, 74, 43, 0.18), transparent 65%),
+        linear-gradient(140deg, var(--bg-1), var(--bg-2));
+      min-height: 100vh;
+      padding: 24px 16px 40px;
+    }
+
+    .app {
+      max-width: 980px;
+      margin: 0 auto;
+      background: var(--panel);
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      animation: rise 420ms ease-out both;
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .hero {
+      padding: 24px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(
+        100deg,
+        rgba(255, 255, 255, 0.52),
+        rgba(255, 255, 255, 0.2)
+      );
+    }
+
+    .title {
+      margin: 0;
+      font-family: "Rockwell", "Georgia", serif;
+      letter-spacing: 0.3px;
+      font-size: clamp(1.6rem, 2.6vw, 2.2rem);
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 0.98rem;
+    }
+
+    .content {
+      display: grid;
+      gap: 16px;
+      padding: 18px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.72);
+      padding: 14px;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .label {
+      font-weight: 700;
+      margin: 0 0 8px;
+      color: #222;
+      font-size: 0.95rem;
+    }
+
+    .tab-group,
+    .mode-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tab-pill,
+    .mode-pill,
+    .btn {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: #26221d;
+      border-radius: 999px;
+      padding: 8px 14px;
+      cursor: pointer;
+      font-weight: 700;
+      letter-spacing: 0.15px;
+      transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+    }
+
+    .tab-pill:hover,
+    .mode-pill:hover,
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 5px 14px rgba(0, 0, 0, 0.08);
+    }
+
+    .tab-pill.active {
+      border-color: var(--accent-2);
+      color: #17453c;
+      background: rgba(37, 105, 91, 0.1);
+    }
+
+    .mode-pill.active {
+      border-color: var(--accent);
+      color: #612412;
+      background: rgba(191, 74, 43, 0.11);
+    }
+
+    .field-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      align-items: end;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #2f2a22;
+    }
+
+    .field input[type="text"],
+    .field textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 11px;
+      font: inherit;
+      color: var(--ink);
+      background: #fffdf9;
+      outline: none;
+    }
+
+    .field textarea {
+      min-height: 145px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    .field input:focus,
+    .field textarea:focus {
+      border-color: var(--accent-2);
+      box-shadow: 0 0 0 3px rgba(37, 105, 91, 0.16);
+    }
+
+    .field.range input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .badge {
+      display: inline-block;
+      margin-left: 10px;
+      border: 1px solid var(--chip-line);
+      border-radius: 999px;
+      background: var(--chip-bg);
+      color: #392f23;
+      font-size: 0.84rem;
+      padding: 4px 10px;
+      font-weight: 700;
+    }
+
+    .controls {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .io-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .output-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 0.84rem;
+      margin: 0;
+    }
+
+    .btn {
+      border-radius: 10px;
+      padding: 8px 12px;
+    }
+
+    .btn.copy {
+      border-color: #b5cfca;
+      background: #edf7f5;
+      color: #1b4f44;
+    }
+
+    .strip {
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+
+    .strip-row {
+      display: grid;
+      grid-template-columns: 92px repeat(26, minmax(24px, 1fr));
+      gap: 4px;
+      min-width: 760px;
+      margin-bottom: 6px;
+      align-items: center;
+    }
+
+    .strip-label {
+      font-weight: 700;
+      color: #332c22;
+      font-size: 0.84rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .cell {
+      text-align: center;
+      border: 1px solid #d7ccb4;
+      border-radius: 7px;
+      padding: 5px 0;
+      font-family: "Consolas", "Menlo", monospace;
+      font-size: 0.88rem;
+      background: #fff;
+      color: #342b21;
+    }
+
+    .cell.shifted {
+      border-color: #b4d1ca;
+      background: rgba(37, 105, 91, 0.1);
+      color: #194e43;
+      font-weight: 700;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      border: 1px solid var(--chip-line);
+      background: var(--chip-bg);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-family: "Consolas", "Menlo", monospace;
+      font-size: 0.86rem;
+      color: #3c3227;
+    }
+
+    .chip.empty {
+      font-family: inherit;
+      color: var(--muted);
+      background: #faf8f3;
+    }
+
+    .hide {
+      display: none;
+    }
+
+    @media (max-width: 820px) {
+      .controls,
+      .io-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="hero">
+      <h1 class="title">CipherDeck</h1>
+      <p class="subtitle">Caesar + Vigenere classical ciphers with live mapping visuals.</p>
+    </header>
+
+    <section class="content">
+      <section class="panel">
+        <div class="controls">
+          <div>
+            <p class="label">Cipher</p>
+            <div class="tab-group" role="tablist" aria-label="Cipher selector">
+              <button id="tab-caesar" class="tab-pill active" role="tab" aria-selected="true" onclick="setTab('caesar')">Caesar</button>
+              <button id="tab-vigenere" class="tab-pill" role="tab" aria-selected="false" onclick="setTab('vigenere')">Vigenere</button>
+            </div>
+          </div>
+
+          <div>
+            <p class="label">Mode</p>
+            <div class="mode-group" aria-label="Encrypt or decrypt">
+              <button id="mode-encrypt" class="mode-pill active" aria-pressed="true" onclick="setMode(true)">Encrypt</button>
+              <button id="mode-decrypt" class="mode-pill" aria-pressed="false" onclick="setMode(false)">Decrypt</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div id="caesar-controls" class="field">
+          <label for="shift">Shift</label>
+          <div class="row">
+            <input id="shift" type="range" min="1" max="25" value="3" />
+            <span id="shift-badge" class="badge" aria-live="polite">Shift: 3</span>
+          </div>
+        </div>
+
+        <div id="vigenere-controls" class="field hide">
+          <label for="keyword">Keyword</label>
+          <input id="keyword" type="text" placeholder="e.g., KEY" autocomplete="off" />
+          <p class="hint">Only letters are used in the key. Non-letters are ignored.</p>
+        </div>
+      </section>
+
+      <section class="panel io-grid">
+        <div class="field">
+          <label for="input">Input Text</label>
+          <textarea id="input" placeholder="Type plaintext or ciphertext here..."></textarea>
+          <p class="hint">Non-alphabetic characters are preserved.</p>
+        </div>
+
+        <div class="field">
+          <div class="output-actions">
+            <label for="output">Output</label>
+            <button id="copy-btn" class="btn copy" type="button">Copy</button>
+          </div>
+          <textarea id="output" readonly aria-live="polite" placeholder="Transformed text appears here..."></textarea>
+          <p class="hint" id="copy-hint">Ready to copy.</p>
+        </div>
+      </section>
+
+      <section class="panel">
+        <p class="label">Live Alphabet Strip</p>
+        <div id="strip-wrap" class="strip" aria-label="Caesar shift mapping"></div>
+      </section>
+
+      <section class="panel">
+        <p class="label">Character Mapping Chips</p>
+        <div id="chips" class="chips"></div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    // ─────────────────────────────────────────────
+    // 1. STATE + CONSTANTS
+    // ─────────────────────────────────────────────
+    const state = {
+      tab: "caesar",
+      encrypt: true
+    };
+
+    const ABC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    const el = {
+      tabCaesar: document.getElementById("tab-caesar"),
+      tabVigenere: document.getElementById("tab-vigenere"),
+      modeEncrypt: document.getElementById("mode-encrypt"),
+      modeDecrypt: document.getElementById("mode-decrypt"),
+      shift: document.getElementById("shift"),
+      shiftBadge: document.getElementById("shift-badge"),
+      key: document.getElementById("keyword"),
+      input: document.getElementById("input"),
+      output: document.getElementById("output"),
+      chips: document.getElementById("chips"),
+      stripWrap: document.getElementById("strip-wrap"),
+      caesarControls: document.getElementById("caesar-controls"),
+      vigenereControls: document.getElementById("vigenere-controls"),
+      copyBtn: document.getElementById("copy-btn"),
+      copyHint: document.getElementById("copy-hint")
+    };
+
+    // ─────────────────────────────────────────────
+    // 2. SHARED HELPERS
+    // ─────────────────────────────────────────────
+    /**
+     * mod26 — mathematically stable modulo for alphabet indexing.
+     * @param {number} n
+     * @returns {number}
+     */
+    function mod26(n) {
+      return ((n % 26) + 26) % 26;
+    }
+
+    /**
+     * isUpperAlpha — true when character is A..Z.
+     * @param {string} ch
+     * @returns {boolean}
+     */
+    function isUpperAlpha(ch) {
+      return ch >= "A" && ch <= "Z";
+    }
+
+    /**
+     * isLowerAlpha — true when character is a..z.
+     * @param {string} ch
+     * @returns {boolean}
+     */
+    function isLowerAlpha(ch) {
+      return ch >= "a" && ch <= "z";
+    }
+
+    /**
+     * alphaIndex — map A..Z / a..z to 0..25.
+     * @param {string} ch
+     * @returns {number}
+     */
+    function alphaIndex(ch) {
+      const up = ch.toUpperCase();
+      return up.charCodeAt(0) - 65;
+    }
+
+    /**
+     * fromIndex — map 0..25 back to a letter while preserving case.
+     * @param {number} idx
+     * @param {boolean} upper
+     * @returns {string}
+     */
+    function fromIndex(idx, upper) {
+      const c = String.fromCharCode(65 + mod26(idx));
+      return upper ? c : c.toLowerCase();
+    }
+
+    // ─────────────────────────────────────────────
+    // 3. CAESAR CIPHER
+    //
+    // Formula (encrypt): C = (P + shift) mod 26
+    // Formula (decrypt): P = (C - shift + 26) mod 26
+    // ─────────────────────────────────────────────
+    /**
+     * caesarChar — shift a single character by `shift` positions.
+     * @param {string} ch - a single character
+     * @param {number} shift - shift amount (1..25)
+     * @param {boolean} enc - true=encrypt, false=decrypt
+     * @returns {string}
+     */
+    function caesarChar(ch, shift, enc) {
+      const upper = isUpperAlpha(ch);
+      const lower = isLowerAlpha(ch);
+
+      if (!upper && !lower) {
+        return ch;
+      }
+
+      const dir = enc ? shift : -shift;
+      return fromIndex(alphaIndex(ch) + dir, upper);
+    }
+
+    /**
+     * caesarText — transform full text with Caesar.
+     * @param {string} text
+     * @param {number} shift
+     * @param {boolean} enc
+     * @returns {string}
+     */
+    function caesarText(text, shift, enc) {
+      let out = "";
+      for (const ch of text) {
+        out += caesarChar(ch, shift, enc);
+      }
+      return out;
+    }
+
+    // ─────────────────────────────────────────────
+    // 4. VIGENERE CIPHER
+    //
+    // Formula (encrypt): C[i] = (P[i] + K[i mod len(K)]) mod 26
+    // Formula (decrypt): P[i] = (C[i] - K[i mod len(K)] + 26) mod 26
+    // ─────────────────────────────────────────────
+    /**
+     * normalizeKey — keep A..Z only and uppercase.
+     * @param {string} key
+     * @returns {string}
+     */
+    function normalizeKey(key) {
+      return (key.toUpperCase().match(/[A-Z]/g) || []).join("");
+    }
+
+    /**
+     * vigenereText — transform full text with Vigenere.
+     * @param {string} text
+     * @param {string} key
+     * @param {boolean} enc
+     * @returns {string}
+     */
+    function vigenereText(text, key, enc) {
+      const cleanKey = normalizeKey(key);
+      if (!cleanKey.length) {
+        return text;
+      }
+
+      let keyIndex = 0;
+      let out = "";
+
+      for (const ch of text) {
+        const upper = isUpperAlpha(ch);
+        const lower = isLowerAlpha(ch);
+
+        // Non-alpha: pass through, do NOT advance key index.
+        if (!upper && !lower) {
+          out += ch;
+          continue;
+        }
+
+        const keyShift = cleanKey.charCodeAt(keyIndex % cleanKey.length) - 65;
+        const dir = enc ? keyShift : -keyShift;
+        out += fromIndex(alphaIndex(ch) + dir, upper);
+        keyIndex += 1;
+      }
+
+      return out;
+    }
+
+    // ─────────────────────────────────────────────
+    // 5. VISUALISATION
+    // ─────────────────────────────────────────────
+    /**
+     * renderAlphabetStrip — show plaintext and cipher rows for Caesar mode.
+     * @param {number} shift
+     */
+    function renderAlphabetStrip(shift) {
+      if (state.tab !== "caesar") {
+        el.stripWrap.innerHTML = "<p class='hint'>Alphabet strip is shown for Caesar mode.</p>";
+        return;
+      }
+
+      const sourceCells = ABC.split("").map((c) => `<div class="cell">${c}</div>`).join("");
+      const targetCells = ABC.split("")
+        .map((c) => {
+          const mapped = caesarChar(c, shift, state.encrypt);
+          return `<div class="cell shifted">${mapped}</div>`;
+        })
+        .join("");
+
+      el.stripWrap.innerHTML = `
+        <div class="strip-row">
+          <div class="strip-label">Plain</div>
+          ${sourceCells}
+        </div>
+        <div class="strip-row">
+          <div class="strip-label">${state.encrypt ? "Cipher" : "Decrypted"}</div>
+          ${targetCells}
+        </div>
+      `;
+    }
+
+    /**
+     * renderMappingChips — show unique input->output letter mappings (max 12).
+     * @param {string} source
+     * @param {string} transformed
+     */
+    function renderMappingChips(source, transformed) {
+      const seen = new Set();
+      const chips = [];
+      const n = Math.min(source.length, transformed.length);
+
+      for (let i = 0; i < n; i += 1) {
+        const s = source[i];
+        const t = transformed[i];
+        const sAlpha = isUpperAlpha(s) || isLowerAlpha(s);
+        const tAlpha = isUpperAlpha(t) || isLowerAlpha(t);
+
+        if (!sAlpha || !tAlpha) {
+          continue;
+        }
+
+        const pair = `${s.toUpperCase()}→${t.toUpperCase()}`;
+        if (!seen.has(pair)) {
+          seen.add(pair);
+          chips.push(pair);
+        }
+        if (chips.length >= 12) {
+          break;
+        }
+      }
+
+      if (!chips.length) {
+        el.chips.innerHTML = '<span class="chip empty">No alphabetic substitutions to display yet.</span>';
+        return;
+      }
+
+      el.chips.innerHTML = chips.map((pair) => `<span class="chip">${pair}</span>`).join("");
+    }
+
+    // ─────────────────────────────────────────────
+    // 6. UI STATE + EVENTS
+    // ─────────────────────────────────────────────
+    /**
+     * updateControlsVisibility — toggle Caesar/Vigenere control blocks.
+     */
+    function updateControlsVisibility() {
+      const caesarOn = state.tab === "caesar";
+      el.caesarControls.classList.toggle("hide", !caesarOn);
+      el.vigenereControls.classList.toggle("hide", caesarOn);
+    }
+
+    /**
+     * updateTabButtons — sync ARIA and visual styles for tabs.
+     */
+    function updateTabButtons() {
+      const caesarOn = state.tab === "caesar";
+      el.tabCaesar.classList.toggle("active", caesarOn);
+      el.tabVigenere.classList.toggle("active", !caesarOn);
+      el.tabCaesar.setAttribute("aria-selected", String(caesarOn));
+      el.tabVigenere.setAttribute("aria-selected", String(!caesarOn));
+    }
+
+    /**
+     * updateModeButtons — sync encrypt/decrypt toggle state.
+     */
+    function updateModeButtons() {
+      el.modeEncrypt.classList.toggle("active", state.encrypt);
+      el.modeDecrypt.classList.toggle("active", !state.encrypt);
+      el.modeEncrypt.setAttribute("aria-pressed", String(state.encrypt));
+      el.modeDecrypt.setAttribute("aria-pressed", String(!state.encrypt));
+    }
+
+    /**
+     * setTab — switch active cipher tab.
+     * @param {"caesar"|"vigenere"} nextTab
+     */
+    function setTab(nextTab) {
+      state.tab = nextTab;
+      updateTabButtons();
+      updateControlsVisibility();
+      run();
+    }
+
+    /**
+     * setMode — switch encrypt/decrypt mode.
+     * @param {boolean} enc
+     */
+    function setMode(enc) {
+      state.encrypt = enc;
+      updateModeButtons();
+      run();
+    }
+
+    /**
+     * updateShiftBadge — refresh visible shift value.
+     */
+    function updateShiftBadge() {
+      el.shiftBadge.textContent = `Shift: ${el.shift.value}`;
+    }
+
+    // ─────────────────────────────────────────────
+    // 7. MAIN RUNNER
+    // ─────────────────────────────────────────────
+    /**
+     * run — process input and refresh output + visuals.
+     */
+    function run() {
+      const input = el.input.value || "";
+      let output = input;
+
+      if (state.tab === "caesar") {
+        const shift = Number(el.shift.value) || 1;
+        output = caesarText(input, shift, state.encrypt);
+        renderAlphabetStrip(shift);
+      } else {
+        output = vigenereText(input, el.key.value || "", state.encrypt);
+        renderAlphabetStrip(Number(el.shift.value) || 1);
+      }
+
+      el.output.value = output;
+      renderMappingChips(input, output);
+    }
+
+    // ─────────────────────────────────────────────
+    // 8. COPY TO CLIPBOARD
+    // ─────────────────────────────────────────────
+    /**
+     * copyOutput — copy transformed text using modern API with fallback.
+     */
+    async function copyOutput() {
+      const value = el.output.value;
+
+      if (!value.length) {
+        el.copyHint.textContent = "Nothing to copy yet.";
+        return;
+      }
+
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(value);
+        } else {
+          el.output.focus();
+          el.output.select();
+          document.execCommand("copy");
+          el.output.setSelectionRange(0, 0);
+        }
+        el.copyHint.textContent = "Copied to clipboard.";
+      } catch (err) {
+        el.copyHint.textContent = "Copy failed in this browser context.";
+      }
+    }
+
+    // ─────────────────────────────────────────────
+    // 9. INIT
+    // ─────────────────────────────────────────────
+    [el.input, el.shift, el.key].forEach((node) => {
+      node.addEventListener("input", () => {
+        updateShiftBadge();
+        run();
+      });
+    });
+
+    [el.tabCaesar, el.tabVigenere].forEach((node, i, arr) => {
+      node.addEventListener("keydown", (ev) => {
+        if (ev.key !== "ArrowRight" && ev.key !== "ArrowLeft") {
+          return;
+        }
+        ev.preventDefault();
+        const dir = ev.key === "ArrowRight" ? 1 : -1;
+        const next = (i + dir + arr.length) % arr.length;
+        arr[next].focus();
+        setTab(next === 0 ? "caesar" : "vigenere");
+      });
+    });
+
+    el.copyBtn.addEventListener("click", copyOutput);
+
+    updateShiftBadge();
+    updateControlsVisibility();
+    updateTabButtons();
+    updateModeButtons();
+    run();
+  </script>
+</body>
+</html>
